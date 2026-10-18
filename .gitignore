@@ -1,6 +1,7 @@
 .env
 *.session
 *.json
+*.txt
 /.venv/
 /.idea/
 .idea
