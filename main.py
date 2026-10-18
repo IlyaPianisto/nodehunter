@@ -46,7 +46,7 @@ async def analyze_with_gemini(text, max_retries=3):
         start_time = time.time()
         try:
             response = await ai_client.aio.models.generate_content(
-                model='gemini-3.1-flash-lite',
+                model='gemma-4-26b-a4b-it',
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
@@ -55,6 +55,8 @@ async def analyze_with_gemini(text, max_retries=3):
             )
             print(f"Ответ получен за {time.time() - start_time:.2f} сек.")
             return response.text
+
+
 
         except Exception as e:
             err_msg = str(e)
@@ -82,6 +84,8 @@ async def main():
             print(f"Содержание сообщения: {message.text}")
             json_result = await analyze_with_gemini(message.text)
             print(f"JSON от Gemini:\n{json_result}")
+            #print("Ожидание 20 секунд перед следующим запросом...")
+            #await asyncio.sleep(20)
 
         await asyncio.sleep(4)
 
