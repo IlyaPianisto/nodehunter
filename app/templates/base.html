@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>NodeHunter Panel</title>
+    <!-- Подключаем наш внешний CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <!-- Боковое меню -->
+    <div class="sidebar">
+        <h2>NodeHunter</h2>
+        <a href="/">Главная</a>
+        <a href="/users">Юзеры</a>
+        <a href="/hosts">Хосты</a>
+        <a href="/tg_users_settings">TG users settings</a>
+        <a href="/settings">Настройки</a>
+    </div>
+
+    <!-- Правая часть -->
+    <div class="main-wrapper">
+
+        <!-- Шапка (Topbar) -->
+        <div class="topbar">
+            <div class="topbar-title">{% block page_title %}Главная{% endblock %}</div>
+            <div class="topbar-actions">
+                <a href="#">Community</a>
+                <a href="#">GitHub (4 ⭐️)</a>
+                <a href="#" class="btn-exit">Выход</a>
+            </div>
+        </div>
+
+        <!-- Контент страницы -->
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+
+</body>
+</html>

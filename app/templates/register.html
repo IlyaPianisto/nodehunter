@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация - NodeHunter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="auth-wrapper">
+
+    <div class="auth-box" style="border-color: #3498db;">
+        <h1>Добро пожаловать в NodeHunter!</h1>
+        <h2>Регистрация</h2>
+
+        <form action="/login" method="GET">
+            <input type="text" class="auth-input" placeholder="Придумайте логин" required>
+            <input type="password" class="auth-input" placeholder="Пароль" required style="margin-bottom: 10px;">
+            <input type="password" class="auth-input" placeholder="Повторите пароль" required>
+
+            <button type="submit" class="auth-btn" style="background: #3498db;">Создать аккаунт</button>
+        </form>
+
+    </div>
+
+</body>
+</html>

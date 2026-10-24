@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block page_title %}TG users settings{% endblock %}
+
+{% block content %}
+<div>
+    <button class="btn" style="background: #27ae60; font-size: 16px; padding: 10px 20px; margin-bottom: 20px; border: 2px solid #1e8449; border-radius: 20px;" onclick="openAddModal()">
+        + Добавить юзера
+    </button>
+
+    <!-- Таблица аккаунтов -->
+    <div class="card" style="border: 2px solid #333;">
+        <table>
+            <tr>
+                <th>id</th>
+                <th>username</th>
+                <th>номер</th>
+                <th>состояние</th>
+                <th>действия</th>
+            </tr>
+            {% for u in tg_users %}
+            <tr>
+                <td>{{ u.id }}</td>
+                <td><b>{{ u.username }}</b></td>
+                <td>{{ u.phone }}</td>
+                <td>
+                    <span class="status-badge {% if u.status == 'Парсит' %}status-active{% else %}status-sleep{% endif %}">
+                        {{ u.status }}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn" onclick="openManageModal('{{ u.username }}', {{ u.abused }})">Перейти</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО 1: ДОБАВЛЕНИЕ ЮЗЕРА (Оставлено как было) -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeModals()">✖</button>
+        <h3 style="border: none; text-align: center; display: block;">Добавление юзера</h3>
+
+        <div class="step active" id="step1">
+            <p>Введи номер</p>
+            <input type="text" class="input-text" placeholder="+7...">
+            <button class="btn-step" onclick="nextStep(2)">Далее</button>
+        </div>
+        <div class="step" id="step2">
+            <p>Код</p>
+            <input type="text" class="input-text" placeholder="12345">
+            <button class="btn-step" onclick="nextStep(3)">Далее</button>
+        </div>
+        <div class="step" id="step3">
+            <p>Пароль (если есть)</p>
+            <input type="password" class="input-text" placeholder="*****">
+            <button class="btn-step" style="background: #27ae60;" onclick="nextStep(4)">Готово</button>
+        </div>
+        <div class="step" id="step4">
+            <h2 style="color: #27ae60; border: 2px dashed #27ae60; padding: 20px; border-radius: 10px;">Юзер успешно добавлен!</h2>
+            <button class="btn-step" onclick="closeModals()">Ок</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО 2: МИНИ-МЕССЕНДЖЕР И НАСТРОЙКИ  -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="manageModal">
+    <div class="modal-box messenger-modal">
+
+        <!-- Шапка окна (Стата и Настройки) -->
+        <div class="messenger-header">
+            <div>
+                <h3 style="margin: 0; border: none; color: #2980b9;" id="modalUserName">@username</h3>
+                <span style="font-size: 12px; color: #7f8c8d;">Сервисов заабужено: <b id="modalAbusedCount">0</b></span>
+            </div>
+
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <!-- Кнопка "Действия" с выпадающим списком -->
+                <div class="dropdown" id="actionsDropdown">
+                    <button class="dropdown-btn" onclick="toggleDropdown()">Действия ▼</button>
+                    <div class="dropdown-content" id="actionsDropdownContent">
+                        <button>⏸ Отключить сбор</button>
+                        <button class="danger-action">🚪 Выйти с аккаунта</button>
+                    </div>
+                </div>
+
+                <!-- Кнопка закрытия окна -->
+                <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+            </div>
+        </div>
+
+        <!-- Тело мессенджера -->
+        <div class="messenger-body">
+
+            <!-- Папки -->
+            <div class="msg-folders">
+                {% for f in folders %}
+                <div class="folder-icon {% if loop.first %}active{% endif %}">{{ f }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Список чатов -->
+            <div class="msg-chatlist">
+                {% for chat in chats %}
+                <div class="chat-list-item {% if chat.active %}active{% endif %}">
+                    <div class="chat-name">{% if chat.is_bot %}🤖{% else %}👥{% endif %} {{ chat.name }}</div>
+                    <div class="chat-preview">{{ chat.last_msg }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Область переписки (Текущий чат) -->
+            <div class="msg-chatview">
+                <div class="chat-header">🤖 VPN Bot Free</div>
+
+                <div class="chat-history">
+                    <div class="message msg-my">/start</div>
+                    <div class="message msg-bot">
+                        Привет! Я бот для выдачи бесплатных VPN ключей. Выбери действие ниже:
+                        <div class="bot-buttons">
+                            <button class="bot-btn">🎁 Получить 5 ГБ</button>
+                            <button class="bot-btn">🔑 Мои ключи</button>
+                            <button class="bot-btn">🌍 Выбрать страну</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ввод сообщения -->
+                <div class="chat-input-area">
+                    <button class="attach-btn">📎</button>
+                    <input type="text" class="chat-input" placeholder="Написать сообщение...">
+                    <button class="send-btn">➤</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    function openAddModal() {
+        document.getElementById('addModal').style.display = 'flex';
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        document.getElementById('step1').classList.add('active');
+    }
+    function nextStep(stepNum) {
+        document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+        document.getElementById('step' + stepNum).classList.add('active');
+    }
+    function openManageModal(username, abusedCount) {
+        document.getElementById('modalUserName').innerText = username;
+        document.getElementById('modalAbusedCount').innerText = abusedCount;
+        document.getElementById('manageModal').style.display = 'flex';
+    }
+    function closeModals() {
+        document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+    }
+    // Открыть/закрыть меню действий
+    function toggleDropdown() {
+        document.getElementById("actionsDropdown").classList.toggle("show");
+    }
+
+    // Закрывать меню, если кликнули в любое другое место экрана
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropdown-btn')) {
+            var dropdowns = document.getElementsByClassName("dropdown");
+            for (var i = 0; i < dropdowns.length; i++) {
+                var openDropdown = dropdowns[i];
+                if (openDropdown.classList.contains('show')) {
+                    openDropdown.classList.remove('show');
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

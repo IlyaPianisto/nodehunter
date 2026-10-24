@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Хосты (Ноды){% endblock %}
+
+{% block content %}
+<div>
+    <!-- Настройки минимума хостов -->
+    <div class="card" style="border: 2px solid #333; display: inline-block; padding: 15px 25px;">
+        <h3 style="border: none; margin-top: 0; font-size: 16px; color: #2c3e50;">Целевое количество серверов</h3>
+
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+            <label style="width: 180px; font-weight: bold;">Обычные ноды:</label>
+            <!-- Поле с числом и стрелочками (type="number") -->
+            <input type="number" value="{{ stats.target_regular }}" style="width: 70px; padding: 5px; font-family: monospace; font-size: 16px; border: 1px solid #ccc; border-radius: 4px;">
+            <span style="color: #7f8c8d; font-size: 14px;">Сейчас в базе: <b style="color: #27ae60; font-size: 16px;">{{ stats.actual_regular }}</b></span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+            <label style="width: 180px; font-weight: bold;">LTE (обход ТСПУ):</label>
+            <input type="number" value="{{ stats.target_lte }}" style="width: 70px; padding: 5px; font-family: monospace; font-size: 16px; border: 1px solid #ccc; border-radius: 4px;">
+            <span style="color: #7f8c8d; font-size: 14px;">Сейчас в базе: <b style="color: #27ae60; font-size: 16px;">{{ stats.actual_lte }}</b></span>
+        </div>
+
+        <button class="btn" style="background: #3498db; width: 100%;">Сохранить лимиты</button>
+    </div>
+
+    <!-- Таблица хостов -->
+    <div class="card" style="border: 2px solid #333;">
+        <table>
+            <tr>
+                <th style="width: 30px; text-align: center;">
+                    <input type="checkbox" class="host-checkbox" id="selectAll" onclick="toggleAll()">
+                </th>
+                <th>Название</th>
+                <th>XRay-JSON</th>
+                <th>Дата окончания</th>
+                <th style="text-align: center;">Сост.</th>
+                <th>Действия</th>
+            </tr>
+            {% for h in hosts %}
+            <tr>
+                <td style="text-align: center;">
+                    <input type="checkbox" class="host-checkbox row-checkbox" onclick="checkSelection()">
+                </td>
+                <td><b>{{ h.name }}</b></td>
+                <td><span style="background: #eee; padding: 3px 8px; border-radius: 4px; border: 1px solid #ccc;">{{ h.template }}</span></td>
+                <td>{{ h.expire }}</td>
+                <td style="text-align: center;">
+                    {% if h.status == 'active' %}
+                        <span class="status-icon active">▶</span>
+                    {% else %}
+                        <span class="status-icon disabled">⏸</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn" onclick="openHostModal('{{ h.name }}', '{{ h.template }}', '{{ h.ping }}')">Настроить</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ПЛАВАЮЩАЯ ПАНЕЛЬ МАССОВЫХ ДЕЙСТВИЙ -->
+<!-- ============================================== -->
+<div class="global-actions-bar" id="globalActionsBar">
+    <span>Выбрано: <span class="selected-count" id="selectedCountText">0</span></span>
+
+    <!-- Блок смены шаблона -->
+    <div style="display: flex; gap: 10px; align-items: center; border-left: 2px solid #34495e; border-right: 2px solid #34495e; padding: 0 20px; margin: 0 10px;">
+        <select class="custom-select" style="width: auto; padding: 5px 10px; border: none; font-weight: bold; color: #333;">
+            <option disabled selected>Сменить шаблон...</option>
+            {% for t in templates %}
+            <option value="{{ t }}">{{ t }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn" style="background: #3498db; font-weight: bold;">Применить</button>
+    </div>
+
+    <!-- Кнопки действий -->
+    <button class="btn" style="background: #27ae60;">Включить</button>
+    <button class="btn" style="background: #e67e22;">Отключить</button>
+    <button class="btn" style="background: #c0392b;">Удалить</button>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО: НАСТРОЙКА КОНКРЕТНОГО ХОСТА    -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="hostModal">
+    <div class="modal-box" style="width: 500px;">
+
+        <!-- Шапка с названием, пингом и крестиком -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #2c3e50;">Настройка хоста</h2>
+
+            <!-- Группируем пинг и крестик вместе -->
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-size: 14px; background: #ecf0f1; padding: 5px 10px; border-radius: 15px; font-weight: bold;">
+                    Пинг: <span id="modalHostPing" style="color: #27ae60;">0ms</span>
+                </span>
+                <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 15px;">
+                <div>
+                    <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Название:</label>
+                    <input type="text" id="modalHostName" class="input-text" style="width: 90%; margin: 5px 0; text-align: left;">
+                </div>
+                <div>
+                    <label style="font-weight: bold; font-size: 14px; color: #7f8c8d; display: block; margin-bottom: 5px;">Действия:</label>
+                    <div class="dropdown" id="hostActionsDropdown" style="width: 100%;">
+                        <button class="dropdown-btn" style="width: 100%; text-align: left; background: #fff; color: #333; border: 2px solid #333;" onclick="toggleDropdown('hostActionsDropdown')">Выбрать действие ▼</button>
+                        <div class="dropdown-content" id="hostActionsDropdownContent" style="width: 100%;">
+                            <button>▶ Включить</button>
+                            <button>⏸ Отключить</button>
+                            <button class="danger-action">🗑 Удалить</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="flex: 1;">
+                <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Шаблон XRay-JSON:</label>
+                <select id="modalHostTemplate" class="custom-select" style="margin-top: 5px;">
+                    {% for t in templates %}
+                    <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top: 25px; text-align: right;">
+            <button class="btn" style="background: #27ae60; font-size: 16px; padding: 10px 20px;" onclick="closeModals()">Сохранить изменения</button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Скрипты страницы Хостов -->
+<script>
+    function toggleAll() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        rowCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+        checkSelection();
+    }
+
+    function checkSelection() {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const globalBar = document.getElementById('globalActionsBar');
+        const countText = document.getElementById('selectedCountText');
+
+        let checkedCount = 0;
+        rowCheckboxes.forEach(cb => { if (cb.checked) checkedCount++; });
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (checkedCount === rowCheckboxes.length && checkedCount > 0) {
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.checked = false;
+        }
+
+        if (checkedCount > 0) {
+            countText.innerText = checkedCount;
+            globalBar.classList.add('show');
+        } else {
+            globalBar.classList.remove('show');
+        }
+    }
+
+    function openHostModal(name, template, ping) {
+        document.getElementById('modalHostName').value = name;
+        document.getElementById('modalHostTemplate').value = template;
+
+        const pingEl = document.getElementById('modalHostPing');
+        pingEl.innerText = ping;
+        pingEl.style.color = ping === 'timeout' ? '#e74c3c' : '#27ae60';
+
+        document.getElementById('hostModal').style.display = 'flex';
+    }
+
+    function closeModals() {
+        document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+    }
+
+    function toggleDropdown(id) {
+        document.getElementById(id).classList.toggle("show");
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropdown-btn')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                var openDropdown = dropdowns[i];
+                if (openDropdown.parentElement.classList.contains('show')) {
+                    openDropdown.parentElement.classList.remove('show');
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}

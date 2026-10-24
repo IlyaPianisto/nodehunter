@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Настройки{% endblock %}
+
+{% block content %}
+<div class="settings-layout">
+
+    <!-- Внутреннее меню настроек (Левая часть) -->
+    <div class="settings-menu">
+        <button class="settings-tab-btn active" onclick="openTab('tab-panel', this)">Настройки панели</button>
+        <button class="settings-tab-btn" onclick="openTab('tab-xray', this)">XRay</button>
+        <button class="settings-tab-btn" onclick="openTab('tab-sub', this)">Подписка</button>
+        <button class="settings-tab-btn" onclick="openTab('tab-checker', this)">Чекер</button>
+        <button class="settings-tab-btn" onclick="openTab('tab-tg', this)">Telegram-Bot</button>
+    </div>
+
+    <!-- Область контента (Правая часть) -->
+    <div class="settings-content-area">
+
+        <!-- Вкладка 1: Настройки панели -->
+        <div id="tab-panel" class="settings-tab-pane active">
+            <h2 style="margin-top: 0; color: #2c3e50;">Admins</h2>
+            <table>
+                <tr>
+                    <th>Логин</th>
+                    <th>Пароль</th>
+                    <th>Дата рег.</th>
+                    <th>Действия</th>
+                </tr>
+                {% for a in admins %}
+                <tr>
+                    <td><b>{{ a.login }}</b></td>
+                    <td>********</td>
+                    <td>{{ a.date }}</td>
+                    <td><button class="btn" onclick="openAdminModal('{{ a.login }}')">Перейти</button></td>
+                </tr>
+                {% endfor %}
+            </table>
+            <!-- Добавил вызов нового окна -->
+            <button class="btn" style="margin-top: 15px; background: #27ae60;" onclick="openNewAdminModal()">+ Создать нового</button>
+
+            <hr style="margin: 25px 0; border: 1px solid #eee;">
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-weight: bold; font-size: 16px;">Путь до админки:</label>
+                <input type="text" class="input-text" style="margin: 0; width: 300px; text-align: left;" value="{{ config.admin_path }}">
+                <button class="btn" style="background: #3498db; padding: 10px 20px;">Сохранить</button>
+            </div>
+        </div>
+
+        <!-- Вкладка 2: XRay -->
+        <div id="tab-xray" class="settings-tab-pane">
+            <h2 style="margin-top: 0; color: #2c3e50;">Шаблоны XRay-JSON</h2>
+            <div style="display: flex; flex-direction: column; gap: 10px; width: 300px;">
+                {% for t in templates %}
+                <button class="btn" style="background: #ecf0f1; color: #333; border: 1px solid #bdc3c7; text-align: left; font-size: 16px; padding: 12px;" onclick="openXrayModal('{{ t }}')">
+                    📄 {{ t }}
+                </button>
+                {% endfor %}
+            </div>
+            <!-- Добавил вызов нового окна -->
+            <button class="btn" style="margin-top: 15px; background: #27ae60;" onclick="openNewXrayModal()">+ Добавить шаблон</button>
+        </div>
+
+        <!-- Вкладка 3: Подписка -->
+        <div id="tab-sub" class="settings-tab-pane">
+            <h2 style="margin-top: 0; color: #2c3e50;">Подписка</h2>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-weight: bold; font-size: 16px;">Путь до подписки:</label>
+                <input type="text" class="input-text" style="margin: 0; width: 400px; text-align: left;" value="{{ config.sub_path }}">
+                <button class="btn" style="background: #3498db; padding: 10px 20px;">Сохранить</button>
+            </div>
+            <p style="color: #7f8c8d; font-size: 12px;">* По этому пути клиенты (Happ/INCY) будут скачивать готовые конфиги.</p>
+        </div>
+
+        <!-- Вкладка 4: Чекер -->
+        <div id="tab-checker" class="settings-tab-pane">
+            <h2 style="margin-top: 0; color: #2c3e50;">Чекер (Устройства)</h2>
+            <table>
+                <tr>
+                    <th>Название</th>
+                    <th>Дата добав.</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+                {% for c in checkers %}
+                <tr>
+                    <td><b>{{ c.name }}</b></td>
+                    <td>{{ c.date }}</td>
+                    <td><span class="status-icon active">▶ {{ c.status }}</span></td>
+                    <td><button class="btn">Перейти</button></td>
+                </tr>
+                {% endfor %}
+            </table>
+            <button class="btn" style="margin-top: 15px; background: #27ae60;" onclick="alert('Сгенерирован ключ: hW8x... Введите его в приложении на телефоне.')">+ Добавить устройство</button>
+        </div>
+
+        <!-- Вкладка 5: Telegram Bot -->
+        <div id="tab-tg" class="settings-tab-pane">
+            <h2 style="margin-top: 0; color: #2c3e50;">Telegram-Bot</h2>
+            <p style="color: #7f8c8d; font-style: italic;">(Бот для админ уведомлений и логов)</p>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="font-weight: bold; font-size: 16px;">API Token:</label>
+                <input type="password" class="input-text" style="margin: 0; width: 400px; text-align: left;" value="{{ config.tg_bot_api }}">
+                <button class="btn" style="background: #3498db; padding: 10px 20px;">Сохранить</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНЫЕ ОКНА АДМИНОВ                         -->
+<!-- ============================================== -->
+<!-- 1. Редактирование -->
+<div class="modal-overlay" id="adminModal">
+    <div class="modal-box" style="width: 350px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #2980b9;" id="adminModalTitle">login</h3>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+        </div>
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Изменить login:</label>
+        <input type="text" class="input-text" id="adminLoginInput" style="width: 90%; margin: 5px 0 15px 0;">
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Изменить пароль:</label>
+        <input type="password" class="input-text" placeholder="Новый пароль" style="width: 90%; margin: 5px 0 20px 0;">
+
+        <button class="btn" style="background: #27ae60; width: 100%; padding: 10px;" onclick="closeModals()">Сохранить</button>
+    </div>
+</div>
+
+<!-- 2. Создание нового админа -->
+<div class="modal-overlay" id="newAdminModal">
+    <div class="modal-box" style="width: 350px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #2c3e50;">Создание админа</h3>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+        </div>
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Логин:</label>
+        <input type="text" class="input-text" placeholder="Введите логин" style="width: 90%; margin: 5px 0 15px 0;">
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Пароль:</label>
+        <input type="password" class="input-text" placeholder="Введите пароль" style="width: 90%; margin: 5px 0 20px 0;">
+
+        <button class="btn" style="background: #27ae60; width: 100%; padding: 10px;" onclick="closeModals()">Создать</button>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНЫЕ ОКНА XRAY                            -->
+<!-- ============================================== -->
+<!-- 1. Создание нового шаблона -->
+<div class="modal-overlay" id="newXrayModal">
+    <div class="modal-box" style="width: 350px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #2c3e50;">Новый шаблон</h3>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+        </div>
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Название шаблона (англ):</label>
+        <input type="text" class="input-text" placeholder="например: bypass_dpi" style="width: 90%; margin: 5px 0 20px 0;">
+
+        <button class="btn" style="background: #27ae60; width: 100%; padding: 10px;" onclick="closeModals()">Создать</button>
+    </div>
+</div>
+
+<!-- 2. Редактор XRAY JSON (Исправленный) -->
+<div class="modal-overlay" id="xrayModal">
+    <div class="modal-box" style="width: 700px; max-width: 95%;">
+
+        <!-- Шапка с нормальным выравниванием крестика -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #2980b9;" id="xrayModalTitle">template.json</h3>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+        </div>
+
+        <!-- Текстария с кодом -->
+        <textarea id="xrayJsonCode" class="json-editor">{"log": {"loglevel": "warning"}, "inbounds": [], "outbounds": []}</textarea>
+
+        <!-- Кнопки внизу (Инструменты слева, Сохранить справа) -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-top: 15px; gap: 15px;">
+            <div class="editor-toolbar" style="margin-top: 0;">
+                <button class="btn" style="background: #8e44ad;" onclick="formatJson()">[ { } ] Формат</button>
+                <button class="btn" style="background: #34495e;">Скачать конфиг</button>
+                <button class="btn" style="background: #f39c12;" onclick="copyCode()">Скопир. всё</button>
+                <button class="btn" style="background: #7f8c8d;" onclick="document.getElementById('xrayJsonCode').select()">Выбрать всё</button>
+            </div>
+            <button class="btn" style="background: #27ae60; padding: 10px 25px; font-size: 16px; font-weight: bold;">Сохранить</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    function openTab(tabId, btnElement) {
+        document.querySelectorAll('.settings-tab-pane').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.settings-tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        btnElement.classList.add('active');
+    }
+
+    function openAdminModal(login) {
+        document.getElementById('adminModalTitle').innerText = login;
+        document.getElementById('adminLoginInput').value = login;
+        document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    function openNewAdminModal() {
+        document.getElementById('newAdminModal').style.display = 'flex';
+    }
+
+    function openXrayModal(templateName) {
+        document.getElementById('xrayModalTitle').innerText = templateName + '.json';
+        document.getElementById('xrayModal').style.display = 'flex';
+    }
+
+    function openNewXrayModal() {
+        document.getElementById('newXrayModal').style.display = 'flex';
+    }
+
+    function closeModals() {
+        document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+    }
+
+    function formatJson() {
+        const textarea = document.getElementById('xrayJsonCode');
+        try {
+            const parsed = JSON.parse(textarea.value);
+            textarea.value = JSON.stringify(parsed, null, 4);
+        } catch (e) {
+            alert('Ошибка JSON: Невозможно отформатировать! Проверьте синтаксис.');
+        }
+    }
+
+    function copyCode() {
+        const textarea = document.getElementById('xrayJsonCode');
+        textarea.select();
+        document.execCommand('copy');
+        alert('Код скопирован в буфер обмена!');
+    }
+</script>
+{% endblock %}

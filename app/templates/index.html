@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; gap: 20px;">
+
+    <!-- Левая колонка со статистикой -->
+    <div style="flex: 1;">
+        <div class="card">
+            <h3>Хост / Сервер</h3>
+            <p>CPU: {{ stats.cpu }} <span class="progress-bar"><span class="progress-fill" style="width: {{ stats.cpu }};"></span></span></p>
+            <p>RAM: {{ stats.ram }} <span class="progress-bar"><span class="progress-fill" style="width: {{ stats.ram }};"></span></span></p>
+            <p>SSD: {{ stats.ssd }} <span class="progress-bar"><span class="progress-fill" style="width: {{ stats.ssd }};"></span></span></p>
+            <hr>
+            <p>Серверы (найдено): <b>{{ stats.servers_total }}</b></p>
+            <p>Wi-Fi ok: <b>{{ stats.servers_wifi }}</b></p>
+            <p>Wi-Fi and Bypass RF: <b>{{ stats.servers_lte }}</b></p>
+            <hr>
+            <p>Рабочие серверы (из всех найденных): <b style="color: green;">{{ stats.active_nodes }}</b></p>
+        </div>
+
+        <div class="card">
+            <h3>Состояние чекера</h3>
+            <p>Статус: <b style="color: #2980b9;">{{ stats.checker_status }}</b></p>
+        </div>
+    </div>
+
+    <!-- Правая колонка с задачами "Заабузить!" -->
+    <div style="flex: 2;">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Заабузить!</h3>
+                <span>В очереди: <b>{{ all_tasks|length }}</b></span>
+            </div>
+
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Ссылка</th>
+                    <th>Приоритет</th>
+                    <th>Описание (кратко)</th>
+                    <th>Действие</th>
+                </tr>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.id }}</td>
+                    <td><a href="https://{{ task.link }}" target="_blank">{{ task.link }}</a></td>
+                    <td style="color: {% if task.priority == 'сегодня' %}red{% else %}orange{% endif %}; font-weight: bold;">
+                        {{ task.priority }}
+                    </td>
+                    <td>{{ task.desc }}</td>
+                    <td>
+                        <button class="btn" style="background: #8e44ad;" onclick="openInstructionModal('{{ task.link }}', `{{ task.full_desc }}`)">Инструкция</button>
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Кликабельная строка "Ещё..." -->
+                <tr style="cursor: pointer; background: #f4f6f7; transition: 0.2s;" onmouseover="this.style.background='#e5e8e8'" onmouseout="this.style.background='#f4f6f7'" onclick="openAllTasksModal()">
+                    <td colspan="5" style="text-align: center; color: #3498db; font-weight: bold; font-size: 14px; padding: 12px;">
+                        Открыть все задачи ({{ all_tasks|length }}) ➔
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО 1: ВСЕ ЗАДАЧИ АБУЗА             -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="allTasksModal" style="z-index: 1000;">
+    <div class="modal-box" style="width: 800px; max-width: 95%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; color: #c0392b;">Все возможные абузы</h2>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModal('allTasksModal')">✖</button>
+        </div>
+
+        <div style="max-height: 60vh; overflow-y: auto;">
+            <table>
+                <tr>
+                    <th>ID</th>
+                    <th>Ссылка</th>
+                    <th>Приоритет</th>
+                    <th>Что делать</th>
+                    <th>Действия</th>
+                </tr>
+                {% for task in all_tasks %}
+                <tr>
+                    <td>{{ task.id }}</td>
+                    <td><a href="https://{{ task.link }}" target="_blank">{{ task.link }}</a></td>
+                    <td style="color: {% if task.priority == 'сегодня' %}red{% elif task.priority == 'завтра' %}orange{% else %}#7f8c8d{% endif %}; font-weight: bold;">
+                        {{ task.priority }}
+                    </td>
+                    <td>{{ task.desc }}</td>
+                    <td style="display: flex; gap: 5px;">
+                        <!-- Кнопка чтения инструкции -->
+                        <button class="btn" style="background: #8e44ad;" onclick="openInstructionModal('{{ task.link }}', `{{ task.full_desc }}`)">Инстр.</button>
+                        <!-- Кнопка выполнено -->
+                        <button class="btn" style="background: #27ae60;">✔</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО 2: ПОДРОБНАЯ ИНСТРУКЦИЯ         -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="instructionModal" style="z-index: 1050;">
+    <div class="modal-box" style="width: 500px; max-width: 90%; border-color: #8e44ad;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; color: #8e44ad;">Инструкция по абузу</h2>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModal('instructionModal')">✖</button>
+        </div>
+
+        <p style="color: #7f8c8d; font-weight: bold; margin-top: 0;">Источник: <a id="instLink" href="#" target="_blank" style="color: #3498db;">link</a></p>
+
+        <div style="background: #f4f6f7; padding: 15px; border-radius: 5px; border-left: 4px solid #8e44ad; font-family: sans-serif; font-size: 15px; line-height: 1.5; white-space: pre-wrap;" id="instText">
+            Тут будет текст инструкции от Gemini...
+        </div>
+
+        <div style="margin-top: 20px; text-align: right;">
+            <button class="btn" style="background: #27ae60; padding: 8px 15px;" onclick="closeModal('instructionModal')">Понятно</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Открыть модалку со всеми задачами
+    function openAllTasksModal() {
+        document.getElementById('allTasksModal').style.display = 'flex';
+    }
+
+    // Открыть модалку с подробной инструкцией
+    function openInstructionModal(link, text) {
+        document.getElementById('instLink').innerText = link;
+        document.getElementById('instLink').href = 'https://' + link;
+        document.getElementById('instText').innerText = text;
+        document.getElementById('instructionModal').style.display = 'flex';
+    }
+
+    // Универсальная функция закрытия по ID
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+</script>
+{% endblock %}

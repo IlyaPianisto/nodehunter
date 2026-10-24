@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Юзеры{% endblock %}
+
+{% block content %}
+<div>
+    <!-- Кнопка добавления -->
+    <button class="btn" style="background: #27ae60; font-size: 16px; padding: 10px 20px; margin-bottom: 20px; border: 2px solid #1e8449; border-radius: 20px;" onclick="openNewUserModal()">
+        + Добавить
+    </button>
+
+    <!-- Таблица пользователей -->
+    <div class="card" style="border: 2px solid #333;">
+        <table>
+            <tr>
+                <th style="width: 30px; text-align: center;">
+                    <input type="checkbox" class="host-checkbox" id="selectAll" onclick="toggleAll()">
+                </th>
+                <th>username</th>
+                <th>ID</th> <!-- ИСПРАВЛЕНО С IP НА ID -->
+                <th>status</th>
+                <th>Истекает</th>
+                <th>дата создания</th>
+                <th>дата подкл.</th>
+                <th>Действия</th>
+            </tr>
+            {% for u in users %}
+            <tr style="{% if u.status == 'expired' %}opacity: 0.6;{% endif %}">
+                <td style="text-align: center;">
+                    <input type="checkbox" class="host-checkbox row-checkbox" onclick="checkSelection()">
+                </td>
+                <td><b>{{ u.username }}</b></td>
+                <td>{{ u.id }}</td> <!-- ВЫВОДИМ ID -->
+                <td>
+                    <span class="status-badge {% if u.status == 'active' %}status-active{% else %}status-sleep{% endif %}">
+                        {{ u.status }}
+                    </span>
+                </td>
+                <td style="font-size: {% if u.expire == '∞' %}20px{% else %}14px{% endif %}; font-weight: bold;">
+                    {{ u.expire }}
+                </td>
+                <td>{{ u.created }}</td>
+                <td>{{ u.last_conn }}</td>
+                <td>
+                    <button class="btn" onclick="openEditUserModal('{{ u.username }}', '{{ u.expire }}')">Настроить ⚙️</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- ПЛАВАЮЩАЯ ПАНЕЛЬ МАССОВЫХ ДЕЙСТВИЙ             -->
+<!-- ============================================== -->
+<div class="global-actions-bar" id="globalActionsBar">
+    <span>Выбрано: <span class="selected-count" id="selectedCountText">0</span></span>
+    <button class="btn" style="background: #3498db; margin-left: 20px;">Продлить на месяц</button>
+    <button class="btn" style="background: #e67e22;">Выключить</button>
+    <button class="btn" style="background: #c0392b;">Удалить</button>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО 1: ДОБАВЛЕНИЕ НОВОГО ЮЗЕРА      -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="newUserModal">
+    <div class="modal-box" style="width: 400px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #2c3e50;">Новый юзер</h3>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+        </div>
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Username (или комментарий):</label>
+        <input type="text" class="input-text" placeholder="user_123" style="width: 90%; margin: 5px 0 15px 0;">
+
+        <label style="font-weight: bold; font-size: 14px; color: #7f8c8d;">Срок действия (дней):</label>
+        <input type="number" class="input-text" value="30" style="width: 90%; margin: 5px 0 20px 0;">
+
+        <button class="btn" style="background: #27ae60; width: 100%; padding: 10px;" onclick="closeModals()">Создать</button>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- МОДАЛЬНОЕ ОКНО 2: НАСТРОЙКИ ЮЗЕРА (ПО ЭСКИЗУ)  -->
+<!-- ============================================== -->
+<div class="modal-overlay" id="editUserModal">
+    <div class="modal-box" style="width: 750px; max-width: 95%;">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="margin: 0; color: #2980b9;" id="editModalUserName">user1</h2>
+            <button class="modal-close" style="position: static; padding: 0;" onclick="closeModals()">✖</button>
+        </div>
+
+        <div style="display: flex; gap: 30px;">
+            <!-- ЛЕВАЯ КОЛОНКА (Ссылки и описание) -->
+            <div style="flex: 2; display: flex; flex-direction: column; gap: 10px;">
+
+                <div>
+                    <label style="font-weight: bold; font-size: 14px; color: #333;">Ссылка на подписку:</label>
+                    <input type="text" class="input-text" value="https://api.domain.com/sub/xyz..." style="width: 100%; margin: 5px 0; text-align: left; background: #f9f9f9;" readonly>
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; font-size: 14px; color: #333;">crypt4 (happ):</label>
+                    <input type="text" class="input-text" value="https://crypt4/abc..." style="width: 100%; margin: 5px 0; text-align: left; background: #f9f9f9;" readonly>
+                </div>
+
+                <div>
+                    <label style="font-weight: bold; font-size: 14px; color: #333;">crypt2 (incy):</label>
+                    <input type="text" class="input-text" value="https://crypt2/def..." style="width: 100%; margin: 5px 0; text-align: left; background: #f9f9f9;" readonly>
+                </div>
+
+                <div style="margin-top: 10px;">
+                    <label style="font-weight: bold; font-size: 14px; color: #333;">Описание:</label>
+                    <textarea class="json-editor" style="height: 80px; width: 100%; margin-top: 5px;" placeholder="Заметки о юзере..."></textarea>
+                </div>
+
+            </div>
+
+            <!-- ПРАВАЯ КОЛОНКА (QR, Дата, Теги) -->
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 15px; align-items: flex-end;">
+
+                <!-- Заглушка под QR-код -->
+                <div style="width: 120px; height: 120px; border: 2px dashed #bdc3c7; border-radius: 10px; display: flex; justify-content: center; align-items: center; background: #ecf0f1; font-weight: bold; color: #7f8c8d;">
+                    QR Код
+                </div>
+
+                <div style="width: 100%;">
+                    <label style="font-weight: bold; font-size: 14px; color: #333;">Дата окончания:</label>
+                    <input type="text" class="input-text" id="editModalExpire" value="22.03.26 7:00" style="width: 100%; margin: 5px 0; text-align: center;">
+                </div>
+
+                <div style="width: 100%;">
+                    <label style="font-weight: bold; font-size: 14px; color: #333;">tag:</label>
+                    <input type="text" class="input-text" placeholder="vip, telegram..." style="width: 100%; margin: 5px 0; text-align: center;">
+                </div>
+            </div>
+        </div>
+
+        <!-- ПОДВАЛ (Кнопки действий) -->
+        <!-- ЗДЕСЬ БЫЛ ОБРЫВ В ПРОШЛЫЙ РАЗ -->
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 25px; gap: 15px;">
+
+            <!-- Выпадающее меню "...Ещё" -->
+            <div class="dropdown" id="userActionsDropdown">
+                <!-- Меню выпадает ВВЕРХ (bottom: 110%), чтобы не обрезалось границей окна -->
+                <button class="dropdown-btn" style="background: #ecf0f1; color: #333; border: 2px solid #bdc3c7;" onclick="toggleDropdown('userActionsDropdown')">... Ещё</button>
+                <div class="dropdown-content" style="bottom: 110%; margin-bottom: 5px; top: auto; right: 0;">
+                    <button>⏸ Выключить</button>
+                    <button>🔄 Перевыпуск</button>
+                    <button class="danger-action">🗑 Удалить</button>
+                </div>
+            </div>
+
+            <!-- Главная кнопка Сохранить -->
+            <button class="btn" style="background: #27ae60; font-size: 16px; padding: 10px 25px;" onclick="closeModals()">Сохранить</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // Логика массового выделения
+    function toggleAll() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        rowCheckboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+        checkSelection();
+    }
+
+    function checkSelection() {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const globalBar = document.getElementById('globalActionsBar');
+        const countText = document.getElementById('selectedCountText');
+
+        let checkedCount = 0;
+        rowCheckboxes.forEach(cb => { if (cb.checked) checkedCount++; });
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (checkedCount === rowCheckboxes.length && checkedCount > 0) {
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.checked = false;
+        }
+
+        if (checkedCount > 0) {
+            countText.innerText = checkedCount;
+            globalBar.classList.add('show');
+        } else {
+            globalBar.classList.remove('show');
+        }
+    }
+
+    // Открытие окон
+    function openNewUserModal() {
+        document.getElementById('newUserModal').style.display = 'flex';
+    }
+
+    function openEditUserModal(username, expire) {
+        document.getElementById('editModalUserName').innerText = username;
+        document.getElementById('editModalExpire').value = expire;
+        document.getElementById('editUserModal').style.display = 'flex';
+    }
+
+    function closeModals() {
+        document.querySelectorAll('.modal-overlay').forEach(el => el.style.display = 'none');
+    }
+
+    // Выпадающее меню
+    function toggleDropdown(id) {
+        document.getElementById(id).classList.toggle("show");
+    }
+
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropdown-btn')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                var openDropdown = dropdowns[i];
+                if (openDropdown.parentElement.classList.contains('show')) {
+                    openDropdown.parentElement.classList.remove('show');
+                }
+            }
+        }
+    }
+</script>
+{% endblock %}
